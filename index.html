@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SAFE-EXIT Emergency System</title>
+</head>
+<body>
+    <h2>Passenger Emergency Panel</h2>
+
+    <p>Vehicle Status:</p>
+    <button onclick="checkStatus()">Check Status</button>
+    <pre id="statusBox"></pre>
+
+    <br><br>
+
+    <button onclick="triggerSOS()" style="background:red;color:white;font-size:18px;">
+        SOS
+    </button>
+
+    <p id="result"></p>
+
+    <script>
+function checkStatus() {
+    fetch("http://127.0.0.1:5000/status")
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("statusBox").innerText =
+            JSON.stringify(data, null, 2);
+    })
+    .catch(error => {
+        document.getElementById("statusBox").innerText =
+            "Error connecting to backend";
+        console.error(error);
+    });
+}
+
+function triggerSOS() {
+    fetch("http://127.0.0.1:5000/sos")
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("result").innerText = data.message;
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+</script>
+
+</body>
+</html>
