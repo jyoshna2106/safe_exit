@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Safe Exit Admin Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #4CAF50; color: white; }
+        #loginForm { margin-bottom: 20px; }
+        input { padding: 5px; margin: 5px; }
+        button { padding: 5px 10px; margin: 5px; }
+        #logsTable { display: none; } /* Hide table until login */
+        #sosButton { display: none; } /* Hide SOS button until login */
+    </style>
+</head>
+<body>
+
+<h1>Safe Exit Admin Dashboard</h1>
+
+<!-- Login Form -->
+<div id="loginSection">
+    <h2>Admin Login</h2>
+    <form id="loginForm">
+        <label>Username:</label>
+        <input type="text" id="username" required>
+        <label>Password:</label>
+        <input type="password" id="password" required>
+        <button type="submit">Login</button>
+    </form>
+    <p id="loginMessage" style="color:red;"></p>
+</div>
+
+<!-- SOS Trigger Button -->
+<div>
+    <button id="sosButton">Trigger SOS</button>
+</div>
+
+<!-- Logs Table -->
+<div id="logsSection">
+    <h2>Emergency Logs</h2>
+    <table id="logsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                <th>Speed</th>
+                <th>Door Locked</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody id="logsBody"></tbody>
+    </table>
+</div>
+
+<script>
+let authHeader = null;
+
+// Handle login
+document.getElementById("loginForm").onsubmit = async function(e) {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({username, password})
+        });
+
+        if(res.status === 200){
+            document.getElementById("loginMessage").innerText = "";
+            document.getElementById("loginSection").style.display = "none";
+            document.getElementById("logsSection").style.display = "block";
+            document.getElementById("sosButton").style.display = "inline-block";
+
+            // Store auth header for future requests
+            authHeader = "Basic " + btoa(username + ":" + password);
+
+            // Fetch and display logs
+            fetchLogs();
+        } else {
+            document.getElementById("loginMessage").innerText = "Invalid credentials!";
+        }
+    } catch (err) {
+        console.error(err);
+        document.getElementById("loginMessage").innerText = "Server error!";
+    }
+}
+
+// Fetch logs from /logs API
+async function fetchLogs(){
+    try {
+        const res = await fetch("http://127.0.0.1:5000/logs", {
+            headers: { "Authorization": authHeader }
+        });
+
+        if(res.status === 200){
+            const data = await res.json();
+            const tbody = document.getElementById("logsBody");
+            tbody.innerHTML = ""; // Clear previous rows
+
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                row.forEach(cell => {
+                    const td = document.createElement("td");
+                    td.innerText = cell;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById("logsTable").style.display = "table";
+        } else {
+            alert("Failed to fetch logs. Unauthorized.");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error fetching logs from server.");
+    }
+}
+
+// Handle SOS Button click
+document.getElementById("sosButton").onclick = async function() {
+    try {
+        const res = await fetch("http://127.0.0.1:5000/sos");
+        if(res.status === 200){
+            alert("SOS Triggered Successfully!");
+            fetchLogs(); // Update logs table immediately
+        } else {
+            alert("Failed to trigger SOS");
+        }
+    } catch(err) {
+        console.error(err);
+        alert("Error triggering SOS");
+    }
+}
+</script>
+
+</body>
+</html>
